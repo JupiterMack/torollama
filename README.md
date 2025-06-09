@@ -1,6 +1,6 @@
 # TorOllama MCP Server
 
-A professional Model Context Protocol (MCP) server that provides TOR network connectivity for Ollama and other AI models, enabling anonymous web requests and access to hidden services.
+A Model Context Protocol (MCP) server that provides TOR network connectivity for Ollama and other AI models, enabling anonymous web requests and access to hidden services.
 
 ## Features
 
