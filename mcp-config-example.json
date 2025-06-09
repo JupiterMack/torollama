@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "torollama": {
+      "command": "node",
+      "args": ["/path/to/torollama/dist/index.js"],
+      "env": {
+        "TOR_SOCKS_PORT": "9050",
+        "TOR_CONTROL_PORT": "9051",
+        "TOR_DATA_DIR": "/tmp/torollama-tor",
+        "DEBUG": "false"
+      }
+    }
+  }
+}

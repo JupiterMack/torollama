@@ -1,0 +1,250 @@
+version: '3.8'
+
+services:
+  torollama-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: torollama-mcp-server
+    restart: unless-stopped
+    
+    # Network configuration for enhanced security
+    networks:
+      - torollama-net
+    
+    # Port mapping (only expose what's necessary)
+    ports:
+      - "127.0.0.1:9050:9050"  # SOCKS proxy (localhost only)
+      - "127.0.0.1:9051:9051"  # Control port (localhost only)
+    
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - TOR_SOCKS_PORT=9050
+      - TOR_CONTROL_PORT=9051
+      - TOR_DATA_DIR=/app/tor-data
+      - DEBUG=false
+    
+    # Volume mounts for persistence
+    volumes:
+      - tor-data:/app/tor-data
+      - tor-config:/app/tor-config
+      - ./logs:/app/logs
+    
+    # Security settings
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETUID
+      - SETGID
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    
+    # Health check
+    healthcheck:
+      test: ["/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Dependency management
+    depends_on:
+      - tor-health-check
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Separate TOR health monitoring service
+  tor-health-check:
+    image: alpine:latest
+    container_name: tor-health-monitor
+    restart: unless-stopped
+    
+    networks:
+      - torollama-net
+    
+    volumes:
+      - ./monitoring:/app/monitoring
+    
+    command: >
+      sh -c "
+        apk add --no-cache curl &&
+        while true; do
+          sleep 30
+          if curl -s --socks5 torollama-mcp:9050 --connect-timeout 10 \
+             https://check.torproject.org/api/ip | grep -q '\"IsTor\":true'; then
+            echo \"\$$(date): TOR connectivity OK\"
+          else
+            echo \"\$$(date): TOR connectivity FAILED\"
+          fi
+        done
+      "
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Optional: TOR relay for giving back to the network
+  tor-relay:
+    image: torproject/tor:latest
+    container_name: tor-relay
+    restart: unless-stopped
+    profiles:
+      - relay  # Only start with --profile relay
+    
+    networks:
+      - torollama-net
+    
+    ports:
+      - "9001:9001"  # OR port
+      - "9030:9030"  # Dir port
+    
+    volumes:
+      - tor-relay-data:/var/lib/tor
+      - ./tor-relay-config:/etc/tor:ro
+    
+    environment:
+      - TOR_NICKNAME=TorOllamaRelay
+      - TOR_CONTACT_INFO=admin@torollama.local
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+# Networks
+networks:
+  torollama-net:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: torollama-br
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+
+# Volumes
+volumes:
+  tor-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/tor-data
+  
+  tor-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./config
+  
+  tor-relay-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/tor-relay-data
+
+# Additional configurations for different environments
+x-common-variables: &common-variables
+  NODE_ENV: production
+  TOR_SOCKS_PORT: 9050
+  TOR_CONTROL_PORT: 9051
+
+# Development override service
+services:
+  torollama-mcp-dev:
+    extends: torollama-mcp
+    profiles:
+      - development
+    
+    environment:
+      <<: *common-variables
+      NODE_ENV: development
+      DEBUG: true
+    
+    volumes:
+      - ./src:/app/src:ro
+      - ./dist:/app/dist
+      - tor-data:/app/tor-data
+    
+    command: >
+      sh -c "
+        npm run watch &
+        /app/start.sh
+      "
+    
+    ports:
+      - "9050:9050"
+      - "9051:9051"
+      - "3000:3000"  # Debug port
+
+# Production with monitoring
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: torollama-prometheus
+    profiles:
+      - monitoring
+    
+    networks:
+      - torollama-net
+    
+    ports:
+      - "9090:9090"
+    
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: torollama-grafana
+    profiles:
+      - monitoring
+    
+    networks:
+      - torollama-net
+    
+    ports:
+      - "3000:3000"
+    
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+
+volumes:
+  prometheus-data:
+  grafana-data:

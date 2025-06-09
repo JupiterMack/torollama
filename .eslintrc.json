@@ -1,0 +1,46 @@
+{
+  "env": {
+    "es2022": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "@typescript-eslint/recommended",
+    "@typescript-eslint/recommended-requiring-type-checking"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/explicit-function-return-type": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/prefer-const": "error",
+    "@typescript-eslint/no-var-requires": "error",
+    "prefer-const": "error",
+    "no-var": "error",
+    "object-shorthand": "error",
+    "prefer-template": "error",
+    "template-curly-spacing": "error",
+    "prefer-arrow-callback": "error",
+    "arrow-spacing": "error",
+    "no-console": "warn",
+    "no-debugger": "error",
+    "no-alert": "error",
+    "no-duplicate-imports": "error",
+    "sort-imports": ["error", {
+      "ignoreCase": false,
+      "ignoreDeclarationSort": false,
+      "ignoreMemberSort": false,
+      "memberSyntaxSortOrder": ["none", "all", "multiple", "single"],
+      "allowSeparatedGroups": true
+    }]
+  },
+  "ignorePatterns": ["dist/", "node_modules/", "*.js"]
+}

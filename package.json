@@ -1,0 +1,54 @@
+{
+  "name": "torollama-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server providing TOR network connectivity for Ollama models",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "torollama-mcp-server": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "dev": "npm run build && npm run start",
+    "clean": "rm -rf dist",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "tor",
+    "ollama",
+    "privacy",
+    "anonymity",
+    "proxy"
+  ],
+  "author": "TorOllama Team",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "socks-proxy-agent": "^8.0.4",
+    "node-fetch": "^3.3.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/torollama/mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/torollama/mcp-server/issues"
+  },
+  "homepage": "https://github.com/torollama/mcp-server#readme"
+}
